@@ -5,7 +5,7 @@ import telepot
 from telepot.loop import MessageLoop
 
 """
-After **inserting token** in the source code, run it:
+After **inserting the token** in the source code, run it:
 ```
 $ python2.7 diceyclock.py
 ```
