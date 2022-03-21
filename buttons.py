@@ -6,6 +6,7 @@ from board import SCL, SDA
 import busio
 from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
+import sys
 
 lower_case = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 upper_case = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
@@ -52,7 +53,7 @@ button_2 = Button(17) # A
 button_3 = Button(14) # !
 button_4 = Button(23) # 0
 button_5 = Button(24) # delete
-button_6 = Button(25) # Enter
+button_6 = Button(5) # Enter
 
 press_count = 0
 token_index = -1
@@ -116,9 +117,10 @@ def del_char():
     print(*token)
     
 def enter():
-    
     with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
-        exec(infile.read())
+        a = infile.read()
+        sys.argv = ["telegramBot.py", token]
+        exec(a)
 
 while True:
     
@@ -127,6 +129,7 @@ while True:
     button_3.when_pressed = lambda: token_char(symbols, len(symbols)-1)
     button_4.when_pressed = lambda: token_char(numbers, 9)
     button_5.when_pressed = del_char
+    button_6.when_pressed = enter
 
     # Draw a black filled box to clear the image.
     draw.rectangle((0, 0, width, height), outline=0, fill=0)

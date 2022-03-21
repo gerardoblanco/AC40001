@@ -3,7 +3,6 @@ import random
 import datetime
 import telepot
 from telepot.loop import MessageLoop
-from buttons import token
 
 """
 After **inserting the token** in the source code, run it:
@@ -29,13 +28,14 @@ def handle(msg):
     elif command == '/time':
         bot.sendMessage(chat_id, str(datetime.datetime.now()))
 
+tokenStr = ""
 for ele in token: 
         tokenStr += ele
 
 print("in bot.py now!")
 print(tokenStr)
 
-bot = telepot.Bot(tokenStr)
+bot = telepot.Bot('5213493698:AAHAfFGdUtotyq1Lzl7OJv6FcinSdjXukGE')
 print(bot.getMe())
 MessageLoop(bot, handle).run_as_thread()
 print('I am listening ...') 
