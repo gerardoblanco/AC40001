@@ -61,10 +61,7 @@ first_press = True
 prev_type = [-1]
 start_time = time.time()
 prev_time = time.time()
-
-underscore = " "
-binary = 1
-odd_or_even = 0
+tried = False
 
 def token_char(char_type, limit):
     
@@ -75,7 +72,7 @@ def token_char(char_type, limit):
     global token_index
     global token
     global first_press
-    
+
     start_time = time.time()
     
     if char_type[0] == prev_type[0] and (start_time-end_time < 1.25):
@@ -117,10 +114,32 @@ def del_char():
     print(*token)
     
 def enter():
-    with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
-        a = infile.read()
-        sys.argv = ["telegramBot.py", token]
-        exec(a)
+    global token
+    global token_index
+    global press_count
+    global first_press
+    global prev_type
+    global tried
+    
+    try:
+        with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
+            a = infile.read()
+            sys.argv = ["telegramBot.py", token, tried]
+            exec(a)
+    except:
+        print("Please provide correct token")
+        
+        token.clear()
+        press_count = 0
+        token_index = -1
+        first_press = True
+        rev_type = [-1]
+    else:
+        tried = True
+        with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
+            a = infile.read()
+            sys.argv = ["telegramBot.py", token, tried]
+            exec(a)
 
 while True:
     
@@ -144,10 +163,17 @@ while True:
         for ele in token: 
             displayStr += ele 
     
-    # Write three lines of text. Maximum characters per line = 21
-    draw.text((x, top + 0), "Enter your Telegram", font=font, fill=255)
-    draw.text((x, top + 8), "Bot token below :", font=font, fill=255)
-    draw.text((x, top + 25), displayStr, font=font, fill=255)
+    if tried == False:
+        # Write three lines of text. Maximum characters per line = 21
+        draw.text((x, top + 0), "Enter your Telegram", font=font, fill=255)
+        draw.text((x, top + 8), "Bot token below :", font=font, fill=255)
+        draw.text((x, top + 25), displayStr, font=font, fill=255)
+    else:
+        draw.text((x, top + 0), "", font=font, fill=255)
+        draw.text((x, top + 8), "            Welcome to", font=font, fill=255)
+        draw.text((x, top + 16), "           Auto-Greens!", font=font, fill=255)
+        draw.text((x, top + 25), "", font=font, fill=255)
+
     
 
     # Display image.
