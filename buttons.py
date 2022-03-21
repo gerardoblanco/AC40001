@@ -52,6 +52,7 @@ button_2 = Button(17) # A
 button_3 = Button(14) # !
 button_4 = Button(23) # 0
 button_5 = Button(24) # delete
+button_6 = Button(25) # Enter
 
 press_count = 0
 token_index = -1
@@ -113,6 +114,11 @@ def del_char():
     
     prev_type[0] = -1
     print(*token)
+    
+def enter():
+    
+    with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
+        exec(infile.read())
 
 while True:
     
