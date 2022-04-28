@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/pi/Desktop/AC40001/mymain.tflearn"
+all_model_checkpoint_paths: "/home/pi/Desktop/AC40001/mymain.tflearn"

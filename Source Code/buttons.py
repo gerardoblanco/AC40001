@@ -48,12 +48,12 @@ x = 0
 
 font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 9)
 
-button_1 = Button(27) # a
+button_1 = Button(10) # a
 button_2 = Button(17) # A
-button_3 = Button(14) # !
-button_4 = Button(23) # 0
-button_5 = Button(24) # delete
-button_6 = Button(5) # Enter
+button_3 = Button(11) # !
+button_4 = Button(27) # 0
+button_5 = Button(9) # delete
+button_6 = Button(22) # Enter
 
 press_count = 0
 token_index = -1
@@ -62,6 +62,7 @@ prev_type = [-1]
 start_time = time.time()
 prev_time = time.time()
 tried = False
+error = False
 
 def token_char(char_type, limit):
     
@@ -120,14 +121,19 @@ def enter():
     global first_press
     global prev_type
     global tried
+    global error
     
     try:
-        with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
+        with open('/home/pi/Desktop/AC40001/AIChatBot.py') as infile:
             a = infile.read()
-            sys.argv = ["telegramBot.py", token, tried]
+            sys.argv = ["AIChatBotBot.py", token, tried]
             exec(a)
-    except:
+            print(tried)
+            
+    except Exception as e:
+        print(e)
         print("Please provide correct token")
+        error = True
         
         token.clear()
         press_count = 0
@@ -136,11 +142,11 @@ def enter():
         rev_type = [-1]
     else:
         tried = True
-        with open('/home/pi/Desktop/AC40001/telegramBot.py') as infile:
+        with open('/home/pi/Desktop/AC40001/AIChatBot.py') as infile:
             a = infile.read()
-            sys.argv = ["telegramBot.py", token, tried]
+            sys.argv = ["AIChatBot.py", token, tried]
             exec(a)
-
+    
 while True:
     
     button_1.when_pressed = lambda: token_char(lower_case, 25)
@@ -153,30 +159,41 @@ while True:
     # Draw a black filled box to clear the image.
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
     
-    
     displayStr = " "
     # avoid token runnning off OLED edge by limiting displayed token to 20 characters
-    if len(token) > 20:
-        for y in range (0, 20):
-            displayStr += token[y + (len(token)-20)]
+    if len(token) > 19:
+        for y in range (0, 19):
+            displayStr += str(token[y + (len(token)-19)])
     else:
         for ele in token: 
-            displayStr += ele 
-    
-    if tried == False:
-        # Write three lines of text. Maximum characters per line = 21
-        draw.text((x, top + 0), "Enter your Telegram", font=font, fill=255)
-        draw.text((x, top + 8), "Bot token below :", font=font, fill=255)
-        draw.text((x, top + 25), displayStr, font=font, fill=255)
+            displayStr += str(ele) 
+    if error == False:
+        if tried == False:
+            # Write three lines of text. Maximum characters per line = 21
+            draw.text((x, top + 0), "Enter your Telegram", font=font, fill=255)
+            draw.text((x, top + 8), "Bot token below :", font=font, fill=255)
+            draw.text((x, top + 16), displayStr, font=font, fill=255)
+        else:
+            draw.text((x, top + 0), "", font=font, fill=255)
+            draw.text((x, top + 8), "            Welcome to", font=font, fill=255)
+            draw.text((x, top + 16), "           Auto-Greens!", font=font, fill=255)
+            draw.text((x, top + 25), "", font=font, fill=255)
+        
+        # Display image.
+        disp.image(image)
+        disp.show()
+        time.sleep(0.5)
     else:
         draw.text((x, top + 0), "", font=font, fill=255)
-        draw.text((x, top + 8), "            Welcome to", font=font, fill=255)
-        draw.text((x, top + 16), "           Auto-Greens!", font=font, fill=255)
+        draw.text((x, top + 8), "          Please provide", font=font, fill=255)
+        draw.text((x, top + 16), "           a valid token!", font=font, fill=255)
         draw.text((x, top + 25), "", font=font, fill=255)
+        error=False
+        
+        # Display image.
+        disp.image(image)
+        disp.show()
+        time.sleep(3)
+
 
     
-
-    # Display image.
-    disp.image(image)
-    disp.show()
-    time.sleep(0.5)
