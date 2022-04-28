@@ -1,1 +1,0 @@
-[Google Colab Weed Detection Model Training](https://colab.research.google.com/drive/17fsQmxj8Tcvlj55RfWqbKRSvLxSaiYfq?usp=sharing)
