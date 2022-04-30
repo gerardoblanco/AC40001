@@ -7,6 +7,7 @@ import busio
 from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
 import sys
+import os
 
 lower_case = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 upper_case = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
@@ -123,25 +124,52 @@ def enter():
     global tried
     global error
     
+    # read token from save file if the user hasn't tried to enter a token already and the save file is not empty
+    if token_index == -1 and os.stat("savedToken.txt").st_size != 0:
+        with open ("savedToken.txt", "r") as myfile:
+            data = str(myfile.read().splitlines())
+
+        data = data[1:-1]
+            
+        for x in data:
+            token.append(x)
+        
+        #format token by removing first and last " ' " symbols
+        token.pop(0)
+        token.pop(len(token)-1)
+    
     try:
+        # run AIChatBot script and if no errors are found, tried = True
         with open('/home/pi/Desktop/AC40001/AIChatBot.py') as infile:
             a = infile.read()
             sys.argv = ["AIChatBotBot.py", token, tried]
             exec(a)
             print(tried)
-            
+    
     except Exception as e:
+        # Incorrect token
         print(e)
         print("Please provide correct token")
+        
+        # use this variable to display error message on OLED display
         error = True
         
+        # reset variables
         token.clear()
         press_count = 0
         token_index = -1
         first_press = True
         rev_type = [-1]
     else:
+        # no HTTPS errors from token provided
         tried = True
+        
+        # write new token to save file
+        tokenToString = ''.join(str(e) for e in token)
+        with open('savedToken.txt', "w") as myfile:
+            myfile.write(tokenToString)
+        
+        # run AIChatBot script
         with open('/home/pi/Desktop/AC40001/AIChatBot.py') as infile:
             a = infile.read()
             sys.argv = ["AIChatBot.py", token, tried]

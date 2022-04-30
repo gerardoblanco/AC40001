@@ -12,7 +12,6 @@ import os
 import telebot
 import requests
 import subprocess
-import RPi.GPIO as GPIO
 import envAutomation
 import envControlFuncs
 import detect
@@ -31,17 +30,6 @@ print(r.status_code)
 code = r.status_code
 print(code)
 
-
-# set GPIO numbering mode and define output pins
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(20,GPIO.OUT) 
-GPIO.setup(26,GPIO.OUT)
-GPIO.setup(21,GPIO.OUT) 
-
-# Relay HAT
-GPIO.output(20,True) # solenoid valve
-GPIO.output(26,True) # DC Motor
-GPIO.output(21,True) # water pump
 
 if code == 404 or code == 401:
     # force an exception
@@ -64,61 +52,78 @@ if tried == True:
     except:
         words = []
         labels = []
-        docs_x = []
-        docs_y = []
+        patternList = []
+        patternTagIndicator = []
 
         for intent in data["intents"]:
             for pattern in intent["patterns"]:
-                wrds = nltk.word_tokenize(pattern)
-                words.extend(wrds)
-                docs_x.append(wrds)
-                docs_y.append(intent["tag"])
+                processedWord = nltk.word_tokenize(pattern)
+                words.extend(processedWord)
+                patternList.append(processedWord)
+                # each entry in patternList[] will correspond to the tag at the same index in patternTagIndicator[]
+                patternTagIndicator.append(intent["tag"])
 
             if intent["tag"] not in labels:
                 labels.append(intent["tag"])
-
+        
+        # stem all words in words[] list and remove duplicate entries to obtain vocabulary size
         words = [stemmer.stem(w.lower()) for w in words if w != "?"]
-        words = sorted(list(set(words)))
+        words = sorted(list(set(words))) # remove duplicate entries and convert back to list
 
         labels = sorted(labels)
 
         training = []
         output = []
-
+        
+        # list used for the 1-hot encoding using a bag of words for the output tag
         out_empty = [0 for _ in range(len(labels))]
 
-        for x, doc in enumerate(docs_x):
+        # create the bags of words
+        for x, pattern in enumerate(patternList):
             bag = []
-
-            wrds = [stemmer.stem(w.lower()) for w in doc]
-
+            
+            # stem the words in the patters
+            processedWord = [stemmer.stem(w.lower()) for w in pattern]
+            
+            # for every word in the vocabulary
             for w in words:
-                if w in wrds:
+                # if it exists in the current pattern
+                if w in processedWord:
+                    # represent the existance of this word
                     bag.append(1)
                 else:
                     bag.append(0)
-
+            
+            # make a copy of the out_empt list
             output_row = out_empty[:]
-            output_row[labels.index(docs_y[x])] = 1
-
+            # set the output to 1 for the corresponding tag to the pattern in the patternTagIndicator list
+            output_row[labels.index(patternTagIndicator[x])] = 1
+            
+            
             training.append(bag)
             output.append(output_row)
 
-
+        # TFLearn works with numpy arrays
         training = numpy.array(training)
         output = numpy.array(output)
         
+        # save the pre-processed data
         with open("UpdatedModel.pickle", "wb") as f:
             pickle.dump((words, labels, training, output), f)
-
+    
+    # resetting underlying graph data and settings
     tensorflow.compat.v1.reset_default_graph()
-
-    net = tflearn.input_data(shape=[None, len(training[0])])
-    net = tflearn.fully_connected(net, 8)
-    net = tflearn.fully_connected(net, 8)
-    net = tflearn.fully_connected(net, len(output[0]), activation="softmax")
-    net = tflearn.regression(net)
-
+    
+    # first layer of Neural Network, with number of neurons equal to the vocabulary size
+    neuralNet = tflearn.input_data(shape=[None, len(training[0])])
+    # two fully connected hidden layers with 10 neurons each
+    neuralNet = tflearn.fully_connected(net, 10)
+    neuralNet = tflearn.fully_connected(net, 10)
+    # last layer with number of neurons equal to the number of tags in the vocabulary.
+    neuralNet = tflearn.fully_connected(net, len(output[0]), activation="softmax")
+    neuralNet = tflearn.regression(neuralNet)
+    
+    # train the model
     model = tflearn.DNN(net)
 
     try:
@@ -155,7 +160,6 @@ if tried == True:
         global numpy
         global data
         global random
-        global GPIO
         
         userInput = message.text.casefold()
         results = model.predict([bag_of_words(userInput, words)])
@@ -164,7 +168,16 @@ if tried == True:
         
         tag = labels[results_index]
         
-        if userInput == "/help":
+        ''' As soon as chat is initiated, save the chat ID so that the system can communicate the
+            existence of weeds without having to poll for commands or queries and then reply to the user's
+            message. This way the bot can contact the user automatically,
+            providing proactive customer interaction'''
+        
+        if userInput == "/start":
+            with open('botChatID.txt', "w") as myfile:
+                myfile.write(str(message.chat.id))
+        
+        elif userInput == "/help":
             tag == "Help"
             
         elif userInput == "/temperature":
@@ -228,11 +241,19 @@ if tried == True:
                     bot.send_message(message.chat.id, "The soil is dry")
                 else:
                     bot.send_message(message.chat.id, "The soil is wet")
+                
+                with open ("irrigationTime.txt", "r") as myfile:
+                    irTime = str(myfile.read().splitlines())
+                bot.send_message(message.chat.id, "The irrigation was last used at {}".format(irTime))
             
             if tag == "QueryTemp":
                 interior, exterior = envControlFuncs.greenhouseTemp()
                 bot.send_message(message.chat.id, "The internal temperature is: {}°C".format(interior))
                 bot.send_message(message.chat.id, "The external temperature is: {}°C".format(exterior))
+                
+                with open ("ventilationTime.txt", "r") as myfile:
+                    ventTime = str(myfile.read().splitlines())
+                bot.send_message(message.chat.id, "The ventilation was last activated at {}".format(ventTime))
             
             if tag == "QueryWeed":
                 if detect.main() == "Nothing":
@@ -242,7 +263,11 @@ if tried == True:
             
             if tag == "QueryTank":
                 bot.send_message(message.chat.id, "The water tank depth is: {}m".format(1.3 - (envControlFuncs.waterTankDepth())))
-            
+                
+                with open ("tankTime.txt", "r") as myfile:
+                    tankTime = str(myfile.read().splitlines())
+                bot.send_message(message.chat.id, "The tank was last filled at {}".format(tankTime))
+                
             if tag == "Help":
                 bot.send_message(message.chat.id, "Hey!\nYou can query the state of any environmental control feature by asking me about its current condition.") 
                 bot.send_message(message.chat.id, "If you wish to use commands, these are the ones I can currently understand:")
