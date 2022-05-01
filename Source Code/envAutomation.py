@@ -16,9 +16,9 @@ GPIO.output(26,True) # DC Motor
 GPIO.output(21,True) # water pump
 
 # L298N DC Motor Driver
-in1 = 24
-in2 = 23
-en = 25
+in1 = 15
+in2 = 18
+en = 14
 GPIO.setup(in1,GPIO.OUT)
 GPIO.setup(in2,GPIO.OUT)
 GPIO.setup(en,GPIO.OUT)
@@ -26,6 +26,8 @@ GPIO.output(in1,GPIO.LOW)
 GPIO.output(in2,GPIO.LOW)
 p=GPIO.PWM(en,1000)
 p.ChangeDutyCycle(75) # rpm
+
+error = 0
 
 # get the saved token and chat ID after user starts the chat
 with open ("savedToken.txt", "r") as myfile:
@@ -44,8 +46,11 @@ bot = telebot.TeleBot(savedToken)
 
 def fillTank():
     dt('tankTime.txt')
+    error = 0
     # variable used for unit testing
     hasFilled = False
+    start = time.time()
+    initialDepth = envControlFuncs.waterTankDepth()
     
     GPIO.output(20,True)
     if envControlFuncs.waterTankDepth() > 0.3:
@@ -53,6 +58,12 @@ def fillTank():
             # 'False' turns the relay ON
             GPIO.output(20,False)
             hasFilled = True
+            current = time.time()
+            
+            # if after half an hour the water level hasn't changed
+            if (current - start) > 1800 and envControlFuncs.waterTankDepth() == initialDepth:
+                error = 1
+                break
         GPIO.output(20,True)
     
     return hasFilled
@@ -61,12 +72,21 @@ def irrigation():
     dt('irrigationTime.txt')
     # variable used for unit testing
     hasWatered = False
+    error = 0
+    start = time.time()
     
     if envControlFuncs.soilMoisture() == True:
-        while envControlFuncs.soilMoisture == True: # and envControlFuncs.waterTankDepth < 0.7
+        while envControlFuncs.soilMoisture() == True: # and envControlFuncs.waterTankDepth < 0.7
             # 'False' turns the relay ON
             GPIO.output(21,False)
             hasWatered = True
+            current = time.time()
+            
+            # if still dry after 10 minutes
+            if (current - start) > 600 and envControlFuncs.soilMoisture() == True:
+                error = 1
+                break
+            
         GPIO.output(21,True)
     else:
         GPIO.output(21,True)
@@ -79,6 +99,10 @@ def ventilation():
     hasOpened = False
     hasClosed = False
     
+    error = 0
+    start = time.time()
+    initialDistance = envControlFuncs.windowOpenDistance()
+    
     interior, exterior = envControlFuncs.greenhouseTemp()
     if interior > exterior and interior > 25:
         while envControlFuncs.windowOpenDistance() < 1.8:
@@ -88,13 +112,26 @@ def ventilation():
             GPIO.output(in1,GPIO.HIGH)
             GPIO.output(in2,GPIO.LOW)
             hasOpened = True
+            
+            current = time.time()
+            
+            if (current - start) > 100 and envControlFuncs.windowOpenDistance() == initialDistance:
+                error = 1
+                break
+            
     elif exterior > interior and interior < 25:
-        while envControlFuncs.swindowOpenDistance() > 1.5:
+        while envControlFuncs.windowOpenDistance() > 1.5:
             GPIO.output(26,False)
             # drive motor backwards
             GPIO.output(in1,GPIO.LOW)
             GPIO.output(in2,GPIO.HIGH)
             hasClosed = True
+            
+            current = time.time()
+            
+            if (current - start) > 100 and envControlFuncs.windowOpenDistance() == initialDistance:
+                error = 1
+                break
     
     # turn off dc motor by opening relay terminal
     GPIO.output(26,True)
@@ -113,8 +150,14 @@ def dt(path):
 while True:
     # fill tank after waiting period so that the air-water boundary is as still as possible
     fillTank()
+    if error == 1:
+        bot.send_message(cid, "Something is broken at the water tank! It may be the solenoid valve")
     irrigation()
+    if error == 1:
+        bot.send_message(cid, "Something is broken with the irrigation! It may be the water pump")
     ventilation()
+    if error == 1:
+        bot.send_message(cid, "Something is broken with the ventilation! It may be the DC motor")
     # if a weed is detected, let the user know!
     if detect.main() != "Nothing":
         bot.send_message(cid, "There is a weed in your greenhouse!")

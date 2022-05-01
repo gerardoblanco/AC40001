@@ -26,7 +26,7 @@ def greenhouseTemp():
     return interior, exterior
     
 def windowOpenDistance():
-    sensor = DistanceSensor(23, 24)
+    sensor = DistanceSensor(6, 5)
     distance = sensor.distance
     
     return distance
@@ -34,10 +34,10 @@ def windowOpenDistance():
 def soilMoisture():
     #GPIO setup -- pin 29 as moisture sensor input
     GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(23,GPIO.IN)
-    if (GPIO.input(23))==0:
+    GPIO.setup(12,GPIO.IN)
+    if (GPIO.input(12))==0:
         dry = False
-    elif (GPIO.input(23))==1:
+    elif (GPIO.input(12))==1:
         dry = True
     
     return dry
