@@ -56,7 +56,6 @@ def run(model: str, camera_id: int, width: int, height: int, num_threads: int,
         print(weedType[0][0])
         return str(weedType[0][0])
     except:
-        print("Nothing detected!")
         return "Nothing"
 
     # Draw keypoints and edges on input image
