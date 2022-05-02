@@ -259,7 +259,7 @@ if tried == True:
                 if detect.main() == "Nothing":
                     bot.send_message(message.chat.id, "No weeds found!")
                 else:
-                    bot.send_message(message.chat.id, "I think I see weeds in your greenhouse!")
+                    bot.send_message(message.chat.id, "I think I see {} in your greenhouse!".format(detect.main()))
             
             if tag == "QueryTank":
                 bot.send_message(message.chat.id, "The water tank depth is: {}m".format(1.3 - (envControlFuncs.waterTankDepth())))
